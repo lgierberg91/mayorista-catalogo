@@ -4,6 +4,7 @@ window.CATALOG_CONFIG = {
   publicKey: 'sb_publishable_haY52hw5RgC7nzrJmamkMA_gf4VWmQ1',
   // WhatsApp que recibe consultas y pedidos (formato internacional, sin +).
   whatsappNumber: '5491158975896',
-  // Destino de los mails del pop-up de suscripción (POST JSON {email, source}). Vacío = todavía sin conectar.
+  // URL de la Web App de Google Apps Script que guarda los mails del pop-up en Google Sheets
+  // (ver integrations/newsletter-google-sheets.gs). Vacío = todavía sin conectar.
   newsletterEndpoint: ''
 };

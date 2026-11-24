@@ -18,12 +18,15 @@
   async function save(email) {
     const endpoint = window.CATALOG_CONFIG?.newsletterEndpoint;
     if (!endpoint) return;
+    // text/plain evita el preflight CORS, que Google Apps Script no soporta.
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ email, source: 'popup', page: location.pathname })
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const result = await response.json().catch(() => ({}));
+    if (result.ok === false) throw new Error(result.error || 'Error al guardar');
   }
 
   function open() {
