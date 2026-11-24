@@ -4624,7 +4624,7 @@ function buildCollectionFilters() {
     `).join("");
   collectionFilters.innerHTML=markup;
   let tabs=document.getElementById('catalog-collection-tabs');
-  if(!tabs){tabs=document.createElement('nav');tabs.id='catalog-collection-tabs';tabs.className='catalog-collection-tabs';tabs.setAttribute('aria-label','Colecciones');document.querySelector('.catalog-search')?.after(tabs);}
+  if(!tabs){tabs=document.createElement('nav');tabs.id='catalog-collection-tabs';tabs.className='catalog-collection-tabs';tabs.setAttribute('aria-label','Colecciones');document.getElementById('active-filter-chips')?.before(tabs);}
   tabs.hidden=config.showTabs!==true;
   tabs.innerHTML=config.showTabs===true?markup:'';
 }
@@ -5796,17 +5796,114 @@ function toggleCart(product, optionId = null) {
     showToast(`"${product.name}" no tiene colores disponibles en esta opción`);
     return;
   }
+  openAddDialog(product, selectedOption);
+}
+
+// Antes de sumar al pedido se muestra cómo viene la caja y se eligen cuántas cajas.
+// Si la prenda ya está en el pedido, el mismo diálogo actualiza la cantidad.
+let addDialogEl = null;
+function openAddDialog(product, selectedOption) {
+  const escapeText = value => String(value ?? '').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
   const cartKey = getCartKey(product, selectedOption?.id || null);
-  const idx = cart.findIndex(item => item.cartKey === cartKey);
-  if (idx === -1) {
-    cart.push({ ...product, cartKey, cartCollectionId: activeCollection, selectedPurchaseOption: selectedOption || null, quantity: 1 });
-    showToast(`"${product.name}"${selectedOption ? ` · ${selectedOption.label}` : ''} agregada`);
-  } else {
-    cart.splice(idx, 1);
-    showToast(`"${product.name}"${selectedOption ? ` · ${selectedOption.label}` : ''} quitada`);
+  const existing = cart.find(item => item.cartKey === cartKey);
+  const max = Math.max(1, Math.min(999, Number(getCartSettings().maxQuantity) || 99));
+  const probe = { ...product, selectedPurchaseOption: selectedOption || null };
+  const packaging = selectedOption?.packaging || product.packaging;
+  const sizeOrder = selectedOption?.sizes || product.sizes || [];
+  const sizes = [...new Set([...sizeOrder.map(normalizeCatalogSize), ...(packaging?.rows || []).flatMap(row => Object.keys(row.sizePieces || {}).map(normalizeCatalogSize))])];
+  const showStock = showsStockByColor(product, selectedOption);
+  const rows = (packaging?.rows || []).map(row => {
+    const bySize = Object.fromEntries(Object.entries(row.sizePieces || {}).map(([size, value]) => [normalizeCatalogSize(size), value]));
+    const unavailable = showStock && isColorUnavailable(product, row.color, selectedOption);
+    const curve = sizes.length && Object.keys(bySize).length
+      ? sizes.map(size => `<td>${escapeText(bySize[size] ?? '-')}</td>`).join('')
+      : `<td colspan="${Math.max(1, sizes.length)}">${escapeText(row.curveText || '-')}</td>`;
+    return `<tr class="${unavailable ? 'out-of-stock' : ''}"><th scope="row">${escapeText(row.color)}${unavailable ? ' <small>Agotado</small>' : ''}</th>${curve}<td>${escapeText(getRowPiecesLabel(row))}</td></tr>`;
+  }).join('');
+  const table = rows ? `<table class="add-dialog-table"><thead><tr><th>Color</th>${sizes.map(size => `<th>${escapeText(size)}</th>`).join('')}<th>Piezas</th></tr></thead><tbody>${rows}</tbody></table>` : '';
+  const perBox = cartPiecesLabel(probe, 1) || packaging?.totalLabel || '';
+  const image = getDisplayProductImageSources(product)[0] || '';
+
+  if (!addDialogEl) {
+    addDialogEl = document.createElement('div');
+    addDialogEl.className = 'add-dialog-overlay';
+    addDialogEl.hidden = true;
+    addDialogEl.addEventListener('click', event => { if (event.target === addDialogEl) closeAddDialog(); });
+    document.addEventListener('keydown', event => {
+      if (event.key !== 'Escape' || addDialogEl.hidden) return;
+      event.stopImmediatePropagation();
+      closeAddDialog();
+    }, true);
+    document.body.append(addDialogEl);
   }
-  updateCartUI();
-  updateCardStates();
+  addDialogEl.innerHTML = `
+    <div class="add-dialog" role="dialog" aria-modal="true" aria-labelledby="add-dialog-title">
+      <button class="add-dialog-close" type="button" aria-label="Cerrar">×</button>
+      <div class="add-dialog-head">
+        ${image ? `<img src="${escapeText(image)}" alt="" />` : ''}
+        <div>
+          <p class="add-dialog-kicker">${escapeText(formatProductSubcategory(product))}</p>
+          <h3 id="add-dialog-title">${escapeText(product.name)}</h3>
+          ${selectedOption ? `<p class="add-dialog-option">${escapeText(selectedOption.label)}</p>` : ''}
+        </div>
+      </div>
+      <p class="add-dialog-label">Cómo viene cada caja${perBox ? ` · <strong>${escapeText(perBox)}</strong>` : ''}</p>
+      ${table || '<p class="add-dialog-empty">Curva a confirmar.</p>'}
+      <div class="add-dialog-qty">
+        <span>¿Cuántas cajas querés?</span>
+        <div class="add-dialog-stepper">
+          <button type="button" data-step="-1" aria-label="Una caja menos">−</button>
+          <input type="number" inputmode="numeric" min="1" max="${max}" aria-label="Cantidad de cajas" />
+          <button type="button" data-step="1" aria-label="Una caja más">+</button>
+        </div>
+      </div>
+      <p class="add-dialog-total" aria-live="polite"></p>
+      <button class="add-dialog-confirm" type="button"></button>
+    </div>`;
+
+  const input = addDialogEl.querySelector('input');
+  const total = addDialogEl.querySelector('.add-dialog-total');
+  const confirm = addDialogEl.querySelector('.add-dialog-confirm');
+  const clamp = value => Math.max(1, Math.min(max, Math.round(Number(value) || 1)));
+  const render = () => {
+    const quantity = clamp(input.value);
+    const pieces = cartPiecesLabel(probe, quantity);
+    total.textContent = `${quantity} ${quantity === 1 ? 'caja' : 'cajas'}${pieces ? ` · ${pieces}` : ''}`;
+    addDialogEl.querySelector('[data-step="-1"]').disabled = quantity <= 1;
+    addDialogEl.querySelector('[data-step="1"]').disabled = quantity >= max;
+  };
+  input.value = existing ? clamp(existing.quantity) : 1;
+  confirm.textContent = existing ? 'Actualizar pedido' : 'Agregar al pedido';
+  render();
+  input.addEventListener('input', render);
+  input.addEventListener('change', () => { input.value = clamp(input.value); render(); });
+  addDialogEl.querySelectorAll('[data-step]').forEach(button => button.addEventListener('click', () => {
+    input.value = clamp(clamp(input.value) + Number(button.dataset.step));
+    render();
+  }));
+  addDialogEl.querySelector('.add-dialog-close').addEventListener('click', closeAddDialog);
+  confirm.addEventListener('click', () => {
+    const quantity = clamp(input.value);
+    const item = cart.find(entry => entry.cartKey === cartKey);
+    if (item) item.quantity = quantity;
+    else cart.push({ ...product, cartKey, cartCollectionId: activeCollection, selectedPurchaseOption: selectedOption || null, quantity });
+    showToast(`"${product.name}" · ${quantity} ${quantity === 1 ? 'caja' : 'cajas'} en tu pedido`);
+    updateCartUI();
+    updateCardStates();
+    closeAddDialog();
+    closeModal();
+    document.getElementById('cart-toggle')?.click();
+  });
+
+  addDialogEl.hidden = false;
+  document.body.classList.add('add-dialog-open');
+  requestAnimationFrame(() => confirm.focus());
+}
+
+function closeAddDialog() {
+  if (!addDialogEl || addDialogEl.hidden) return;
+  addDialogEl.hidden = true;
+  document.body.classList.remove('add-dialog-open');
 }
 
 function removeFromCart(cartKey) {
@@ -5832,7 +5929,8 @@ function getCartProductTotalLabel(product) {
 }
 
 function getCartSettings() {
-  return window.CatalogSiteSettings?.cart || {};
+  // El pedido siempre se arma por cajas, con totales de piezas.
+  return { ...(window.CatalogSiteSettings?.cart || {}), quantities: true, showPieceTotals: true };
 }
 
 function getCartProductPieceRange(product) {
@@ -5999,7 +6097,7 @@ function sendWhatsApp() {
   const items=lines.join('\n').trim(),template=window.CatalogSiteSettings?.whatsapp?.template||'¡Hola! Quisiera pedir cotización de estas prendas.\n\n{items}\n\nTotal de prendas seleccionadas: {n}';
   const totalBoxes=cart.reduce((sum,item)=>sum+(Number(item.quantity)||1),0),customerText=getCartCustomerText(),hasCustomerVariable=template.includes('{cliente}');let message=template.replaceAll('{marca}',window.CatalogSiteSettings?.header?.brandName||'BYE BYE').replaceAll('{coleccion}',collection.name).replaceAll('{items}',items).replaceAll('{n}',String(cart.length)).replaceAll('{cajas}',String(totalBoxes)).replaceAll('{cliente}',customerText);if(customerText&&!hasCustomerVariable)message=`${message}\n\n${customerText}`;
   const msg = encodeURIComponent(message);
-  const whatsappNumber = String(window.CatalogSiteSettings?.whatsapp?.number || '').replace(/\D/g, '');
+  const whatsappNumber = String(window.CATALOG_CONFIG?.whatsappNumber || window.CatalogSiteSettings?.whatsapp?.number || '').replace(/\D/g, '');
   window.open(`https://wa.me/${whatsappNumber}?text=${msg}`, '_blank');
 }
 
