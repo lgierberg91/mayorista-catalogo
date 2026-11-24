@@ -5332,12 +5332,10 @@ function getProductImageObserver() {
         if (!entry.isIntersecting) return;
         const targetEl = entry.target;
         observer.unobserve(targetEl);
-        const id = parseInt(targetEl.dataset.productId, 10);
-        if (!id) return;
-        const queued = queuedProductImages.get(id);
+        const queued = queuedProductImages.get(targetEl);
         if (!queued) return;
-        queuedProductImages.delete(id);
-        loadProductImage(id, queued.imgEl, queued.placeholderEl, queued.secondaryImgEl);
+        queuedProductImages.delete(targetEl);
+        loadProductImage(queued.id, queued.imgEl, queued.placeholderEl, queued.secondaryImgEl);
       });
     }, { rootMargin: '500px 0px' });
   }
@@ -5349,7 +5347,8 @@ function queueProductImage(id, imgEl, placeholderEl, observeEl, secondaryImgEl=n
   const observer = getProductImageObserver();
   if (observer && observeEl) {
     observeEl.dataset.productId = String(id);
-    queuedProductImages.set(id, { imgEl, placeholderEl, secondaryImgEl });
+    // Por tarjeta y no por producto: un UNISEX aparece en dos sliders a la vez.
+    queuedProductImages.set(observeEl, { id, imgEl, placeholderEl, secondaryImgEl });
     observer.observe(observeEl);
     return;
   }
