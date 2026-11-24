@@ -282,3 +282,26 @@ body #site-header .brand-name { font-size: 20px; letter-spacing: .16em; white-sp
   .category-rail-all { height: 34px; padding: 0 14px; font-size: 12px; }
   .category-rail-track { grid-auto-columns: 62%; gap: 12px; }
 }
+
+/* Volver arriba (reemplaza el footer) */
+.back-to-top {
+  position: fixed; left: 20px; bottom: 20px; z-index: 140;
+  display: grid; place-items: center;
+  width: 48px; height: 48px; border-radius: 50%;
+  border: 1px solid rgba(31,26,21,.12);
+  background: var(--white, #f4ede3); color: var(--black, #1f1a15);
+  box-shadow: 0 6px 18px rgba(31,26,21,.18);
+  cursor: pointer; transition: transform .2s ease, opacity .2s ease;
+}
+.back-to-top[hidden] { display: none; }
+.back-to-top:hover { transform: translateY(-2px); }
+body.add-dialog-open .back-to-top { display: none; }
+
+/* WhatsApp titilando */
+@keyframes wa-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(37,211,102,.6), 0 8px 22px rgba(0,0,0,.2); }
+  70% { box-shadow: 0 0 0 16px rgba(37,211,102,0), 0 8px 22px rgba(0,0,0,.2); }
+  100% { box-shadow: 0 0 0 0 rgba(37,211,102,0), 0 8px 22px rgba(0,0,0,.2); }
+}
+.wa-chat:not(.open) .wa-chat-fab { animation: wa-pulse 1.8s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) { .wa-chat-fab { animation: none !important; } }

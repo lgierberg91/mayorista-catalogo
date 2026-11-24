@@ -6972,3 +6972,16 @@ window.addEventListener('catalog-site-preview-product', event => {
   else if (productGrid?.childElementCount) renderProducts();
 });
 document.addEventListener('DOMContentLoaded', async () => { await (window.CatalogSiteReady || Promise.resolve()); init(); });
+
+// Volver arriba
+(() => {
+  const btn = document.getElementById('back-to-top');
+  if (!btn) return;
+  const update = () => { btn.hidden = window.scrollY < 600; };
+  window.addEventListener('scroll', update, { passive: true });
+  btn.addEventListener('click', () => {
+    const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
+  });
+  update();
+})();
