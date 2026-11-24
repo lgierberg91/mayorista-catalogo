@@ -2,3 +2,5 @@
 archivos-comprimidos/Pasaporte Isabella Schvartz comprimido.jpg
 .DS_Store
 **/.DS_Store
+.vercel
+.env*
