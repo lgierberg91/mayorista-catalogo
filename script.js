@@ -4624,7 +4624,7 @@ function buildCollectionFilters() {
     `).join("");
   collectionFilters.innerHTML=markup;
   let tabs=document.getElementById('catalog-collection-tabs');
-  if(!tabs){tabs=document.createElement('nav');tabs.id='catalog-collection-tabs';tabs.className='catalog-collection-tabs';tabs.setAttribute('aria-label','Colecciones');document.getElementById('active-filter-chips')?.before(tabs);}
+  if(!tabs){tabs=document.createElement('nav');tabs.id='catalog-collection-tabs';tabs.className='catalog-collection-tabs';tabs.setAttribute('aria-label','Colecciones');document.querySelector('#catalogo .results-info')?.before(tabs);}
   tabs.hidden=config.showTabs!==true;
   tabs.innerHTML=config.showTabs===true?markup:'';
 }
@@ -5080,6 +5080,8 @@ function getFilteredProducts() {
     const searchOk = !productSearchQuery || searchableText.includes(productSearchQuery);
     return genderOk && catOk && searchOk && productMatchesExtraFilters(p);
   }).sort((a, b) => {
+    const availableDifference = Number(b.inStock && hasAvailableColor(b)) - Number(a.inStock && hasAvailableColor(a));
+    if (availableDifference) return availableDifference;
     const categoryA = activeCategory === 'all' ? (a.subcategory || getProductSubcategories(a)[0] || '') : activeCategory;
     const categoryB = activeCategory === 'all' ? (b.subcategory || getProductSubcategories(b)[0] || '') : activeCategory;
     if (activeCategory === 'all' && sortMode==='featured') {
@@ -5107,6 +5109,7 @@ function renderProducts() {
   const filtered = getFilteredProducts();
   const preorderCollection = isPreorderCollection();
   resetProductImageObserver();
+  resetProductLayout();
   productGrid.innerHTML = '';
 
   const searchSettings=window.CatalogSiteSettings?.searchBar||{},resultTemplate=filtered.length===1?(searchSettings.resultTemplateOne||'{n} prenda'):(searchSettings.resultTemplate||'{n} prendas');
@@ -5131,7 +5134,13 @@ function renderProducts() {
   }
   emptyState.style.display = 'none';
 
-  filtered.forEach(p => {
+  productGrid.classList.toggle('category-rails', showCategoryRails());
+  if (showCategoryRails()) renderCategoryRails(filtered, preorderCollection);
+  else renderProductBatches(filtered, preorderCollection);
+  window.CatalogSiteMarkEditable?.();
+}
+
+function createProductCard(p, preorderCollection) {
     const inCart = cart.some(c => c.id === p.id);
     const card = document.createElement('div');
     card.className = 'product-card' + (preorderCollection ? ' preorder' : '') + (p.inStock ? '' : ' out-of-stock');
@@ -5150,6 +5159,7 @@ function renderProducts() {
         <span class="card-badge-gender">${getGenderLabel(p.category)}</span>
         ${preorderCollection && p.inStock ? `<span class="card-badge-preorder">Preventa · Próximamente</span>` : ''}
         ${p.inStock ? '' : `<span class="card-badge-stock">Sin stock</span>`}
+        ${(() => { const available = p.inStock && hasAvailableColor(p); return `<span class="card-stock-dot ${available ? 'in' : 'out'}" role="img" aria-label="${available ? 'Con stock' : 'Sin stock'}" title="${available ? 'Con stock' : 'Sin stock'}"></span>`; })()}
         ${customBadgeLabel ? `<span class="card-badge-custom" style="--product-badge-color:${customBadgeColor}">${escapeText(customBadgeLabel)}</span>` : ''}
         <img class="card-img" src="" alt="${p.name}" loading="lazy" decoding="async" style="display:none;width:100%;height:100%;object-fit:cover;" />
         ${showSecondPhoto ? '<img class="card-img card-img-secondary" src="" alt="" loading="lazy" decoding="async" style="display:none;width:100%;height:100%;object-fit:cover;" />' : ''}
@@ -5193,17 +5203,113 @@ function renderProducts() {
       toggleCart(p);
     });
 
-    productGrid.appendChild(card);
+    return card;
+}
 
-    queueProductImage(
-      p.id,
-      card.querySelector('.card-img'),
-      card.querySelector(`#ph-${p.id}`),
-      card.querySelector('.card-img-wrap'),
-      card.querySelector('.card-img-secondary')
-    );
+function queueCardImage(card, p) {
+  queueProductImage(
+    p.id,
+    card.querySelector('.card-img'),
+    card.querySelector(`#ph-${p.id}`),
+    card.querySelector('.card-img-wrap'),
+    card.querySelector('.card-img-secondary')
+  );
+}
+
+// Sin filtros, el catálogo se muestra en sliders por público; con filtros, grilla con scroll infinito.
+const CATEGORY_RAILS = [['HOMBRE', 'Hombres'], ['MUJER', 'Mujeres'], ['NINOS', 'Niños']];
+const PRODUCT_BATCH_SIZE = 24;
+let productBatchObserver = null;
+let categoryRailTimers = [];
+
+function showCategoryRails() {
+  const hasExtraFilters = Object.values(activeExtraFilters).some(values => values?.size);
+  return activeGender === 'all' && activeCategory === 'all' && !productSearchQuery && !hasExtraFilters;
+}
+
+function resetProductLayout() {
+  productBatchObserver?.disconnect();
+  productBatchObserver = null;
+  categoryRailTimers.forEach(clearInterval);
+  categoryRailTimers = [];
+  document.getElementById('product-grid-sentinel')?.remove();
+}
+
+function renderProductBatches(list, preorderCollection) {
+  let shown = 0;
+  const sentinel = document.createElement('div');
+  sentinel.id = 'product-grid-sentinel';
+  sentinel.setAttribute('aria-hidden', 'true');
+  productGrid.after(sentinel);
+  const renderMore = () => {
+    list.slice(shown, shown + PRODUCT_BATCH_SIZE).forEach(p => {
+      const card = createProductCard(p, preorderCollection);
+      productGrid.appendChild(card);
+      queueCardImage(card, p);
+    });
+    shown = Math.min(list.length, shown + PRODUCT_BATCH_SIZE);
+    window.CatalogSiteMarkEditable?.();
+    if (shown >= list.length) resetProductLayout();
+  };
+  renderMore();
+  if (shown >= list.length) return;
+  if (!('IntersectionObserver' in window)) {
+    while (shown < list.length) renderMore();
+    return;
+  }
+  productBatchObserver = new IntersectionObserver(entries => {
+    if (entries.some(entry => entry.isIntersecting)) renderMore();
+  }, { rootMargin: '800px 0px' });
+  productBatchObserver.observe(sentinel);
+}
+
+function renderCategoryRails(list, preorderCollection) {
+  const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  CATEGORY_RAILS.forEach(([gender, title]) => {
+    const items = list.filter(p => p.category === gender || (p.category === 'UNISEX' && gender !== 'NINOS'));
+    if (!items.length) return;
+    const section = document.createElement('section');
+    section.className = 'category-rail';
+    section.setAttribute('aria-label', title);
+    section.innerHTML = `
+      <div class="category-rail-head">
+        <h2>${title}</h2>
+        <span class="category-rail-count">${items.length} ${items.length === 1 ? 'prenda' : 'prendas'}</span>
+        <div class="category-rail-actions">
+          <button type="button" class="category-rail-arrow" data-direction="-1" aria-label="Ver anteriores de ${title}">‹</button>
+          <button type="button" class="category-rail-arrow" data-direction="1" aria-label="Ver siguientes de ${title}">›</button>
+          <button type="button" class="category-rail-all">Ver todo</button>
+        </div>
+      </div>
+      <div class="category-rail-track"></div>`;
+    const track = section.querySelector('.category-rail-track');
+    items.forEach(p => {
+      const card = createProductCard(p, preorderCollection);
+      track.appendChild(card);
+      queueCardImage(card, p);
+    });
+    const step = () => (track.firstElementChild?.offsetWidth || 240) + 16;
+    const advance = direction => {
+      const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+      if (direction > 0 && atEnd) track.scrollTo({ left: 0, behavior: 'smooth' });
+      else track.scrollBy({ left: direction * step(), behavior: 'smooth' });
+    };
+    section.querySelectorAll('.category-rail-arrow').forEach(button => button.addEventListener('click', () => advance(Number(button.dataset.direction))));
+    section.querySelector('.category-rail-all').addEventListener('click', () => {
+      activeGender = gender;
+      refreshFilterControls();
+      renderProducts();
+      document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    productGrid.appendChild(section);
+    if (reduceMotion) return;
+    let paused = false;
+    ['pointerenter', 'focusin', 'touchstart'].forEach(type => section.addEventListener(type, () => { paused = true; }, { passive: true }));
+    ['pointerleave', 'focusout'].forEach(type => section.addEventListener(type, () => { paused = false; }));
+    categoryRailTimers.push(setInterval(() => {
+      if (!paused && !document.hidden && !document.body.classList.contains('add-dialog-open')) advance(1);
+    }, 3500));
   });
-  window.CatalogSiteMarkEditable?.();
 }
 
 // ── IMAGE LOADER ─────────────────────────────────
@@ -5384,7 +5490,7 @@ function openProductFromUrl() {
 
 async function shareCurrentProduct() {
   if(!currentModalProduct)return;
-  const url=productPublicUrl(currentModalProduct.id),data={title:currentModalProduct.name,text:`${currentModalProduct.name} · BYE BYE`,url};
+  const url=productPublicUrl(currentModalProduct.id),data={title:currentModalProduct.name,text:`${currentModalProduct.name} · Mayorista 2027`,url};
   if(navigator.share){try{await navigator.share(data);return;}catch(error){if(error?.name==='AbortError')return;}}
   try{await navigator.clipboard.writeText(url);showToast(catalogText('toast.linkCopied'));}catch(error){window.prompt('Copiá este enlace',url);}
 }
@@ -6084,7 +6190,7 @@ function sendWhatsApp() {
   if (cart.length === 0) { showToast(catalogText('toast.empty')); return; }
 
   const collection = getActiveCollection();
-  const lines = [`*Mi selección — BYE BYE ${collection.name}*`, ''];
+  const lines = [`*Mi selección — Mayorista 2027 ${collection.name}*`, ''];
   cart.forEach((p, i) => {
     lines.push(`${i + 1}. *${p.name}*`);
     if (p.selectedPurchaseOption) lines.push(`   Opción: ${p.selectedPurchaseOption.label}`);
@@ -6095,7 +6201,7 @@ function sendWhatsApp() {
     lines.push('');
   });
   const items=lines.join('\n').trim(),template=window.CatalogSiteSettings?.whatsapp?.template||'¡Hola! Quisiera pedir cotización de estas prendas.\n\n{items}\n\nTotal de prendas seleccionadas: {n}';
-  const totalBoxes=cart.reduce((sum,item)=>sum+(Number(item.quantity)||1),0),customerText=getCartCustomerText(),hasCustomerVariable=template.includes('{cliente}');let message=template.replaceAll('{marca}',window.CatalogSiteSettings?.header?.brandName||'BYE BYE').replaceAll('{coleccion}',collection.name).replaceAll('{items}',items).replaceAll('{n}',String(cart.length)).replaceAll('{cajas}',String(totalBoxes)).replaceAll('{cliente}',customerText);if(customerText&&!hasCustomerVariable)message=`${message}\n\n${customerText}`;
+  const totalBoxes=cart.reduce((sum,item)=>sum+(Number(item.quantity)||1),0),customerText=getCartCustomerText(),hasCustomerVariable=template.includes('{cliente}');let message=template.replaceAll('{marca}',window.CatalogSiteSettings?.header?.brandName||'Mayorista 2027').replaceAll('{coleccion}',collection.name).replaceAll('{items}',items).replaceAll('{n}',String(cart.length)).replaceAll('{cajas}',String(totalBoxes)).replaceAll('{cliente}',customerText);if(customerText&&!hasCustomerVariable)message=`${message}\n\n${customerText}`;
   const msg = encodeURIComponent(message);
   const whatsappNumber = String(window.CATALOG_CONFIG?.whatsappNumber || window.CatalogSiteSettings?.whatsapp?.number || '').replace(/\D/g, '');
   window.open(`https://wa.me/${whatsappNumber}?text=${msg}`, '_blank');
@@ -6228,8 +6334,8 @@ function downloadPDF() {
     doc.text(catalogText('selectionPdf.page',{pagina:pg,total:totalPages}), pageW - margin, 292, { align: 'right' });
   }
 
-  const selectionFilename=managedPdfFilename(selectionSettings.filename,{coleccion:collection.name.replace(/\s+/g,'')},`ByeBye_Seleccion_${collection.name.replace(/\s+/g, '')}.pdf`);
-  doc.save(selectionFilename||`ByeBye_Seleccion_${collection.name.replace(/\s+/g, '')}.pdf`);
+  const selectionFilename=managedPdfFilename(selectionSettings.filename,{coleccion:collection.name.replace(/\s+/g,'')},`Mayorista2027_Seleccion_${collection.name.replace(/\s+/g, '')}.pdf`);
+  doc.save(selectionFilename||`Mayorista2027_Seleccion_${collection.name.replace(/\s+/g, '')}.pdf`);
   showToast(catalogText('toast.pdf'));
 }
 
@@ -6550,8 +6656,8 @@ async function downloadProductPDF(product, optionId = null) {
       author: catalogText('productPdf.brand'),
       creator: catalogText('productPdf.brand')
     });
-    const productFilename=managedPdfFilename(productPdfSettings.filename,{producto:product.name},`ByeBye_${safePdfFilename(product.name)}.pdf`);
-    doc.save(productFilename||`ByeBye_${safePdfFilename(product.name)}.pdf`);
+    const productFilename=managedPdfFilename(productPdfSettings.filename,{producto:product.name},`Mayorista2027_${safePdfFilename(product.name)}.pdf`);
+    doc.save(productFilename||`Mayorista2027_${safePdfFilename(product.name)}.pdf`);
     showToast(catalogText('toast.productPdf'));
   } catch (error) {
     console.error('No se pudo generar la ficha PDF', error);

@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BYE BYE — Catálogo</title>
-  <meta name="description" content="Catálogo mayorista BYE BYE. Explorá las colecciones, armá tu pedido y solicitá una cotización por WhatsApp." />
+  <title>Mayorista 2027 — Catálogo</title>
+  <meta name="description" content="Catálogo Mayorista 2027. Explorá las colecciones, armá tu pedido y solicitá una cotización por WhatsApp." />
   <meta name="theme-color" content="#f4ede3" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="BYE BYE — Catálogo mayorista" />
-  <meta property="og:description" content="Explorá las colecciones BYE BYE y armá tu pedido mayorista." />
+  <meta property="og:title" content="Mayorista 2027 — Catálogo mayorista" />
+  <meta property="og:description" content="Explorá las colecciones de Mayorista 2027 y armá tu pedido mayorista." />
   <meta property="og:locale" content="es_AR" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="shortcut icon" href="/favicon.ico" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="stylesheet" href="style.css?v=20261119-etapa6" />
-  <link rel="stylesheet" href="mayorista.css?v=20261124b" />
+  <link rel="stylesheet" href="mayorista.css?v=20261124d" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -60,19 +60,20 @@
   <header id="site-header">
     <div class="header-inner">
       <div class="header-left">
-      <button class="filters-toggle" id="filters-toggle" type="button" aria-label="Abrir menú de filtros" aria-controls="filters-panel" aria-expanded="false">
+        <div class="header-brand">
+          <h1 class="brand-name">Mayorista 2027</h1>
+        </div>
+        <span class="collection-tag">Mayorista 2027</span>
+      </div>
+      <div class="header-search catalog-search" role="search">
+      <button class="filters-toggle" id="filters-toggle" type="button" aria-label="Abrir filtros" aria-controls="filters-panel" aria-expanded="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-          <line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line>
+          <line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="18" x2="20" y2="18"></line><circle cx="9" cy="6" r="2" fill="currentColor"></circle><circle cx="15" cy="12" r="2" fill="currentColor"></circle><circle cx="8" cy="18" r="2" fill="currentColor"></circle>
         </svg>
         <span class="filters-toggle-label">Filtros</span>
         <span class="filters-toggle-count" id="filters-toggle-count" hidden>0</span>
       </button>
-        <div class="header-brand">
-          <h1 class="brand-name">BYE BYE</h1>
-        </div>
-        <span class="collection-tag">BYE BYE Mayorista</span>
-      </div>
-      <div class="header-search catalog-search" role="search">
+      <div class="active-filter-chips" id="active-filter-chips" aria-label="Filtros activos" hidden></div>
       <div class="catalog-search-field">
         <svg class="catalog-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
           <circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line>
@@ -95,13 +96,13 @@
   <!-- HERO -->
   <section class="hero" id="hero-carousel" data-active-collection="invierno-2027" aria-roledescription="carrusel" aria-label="Colecciones destacadas">
     <div class="hero-track">
-      <article class="hero-slide baked-banner winter-banner active" data-collection="invierno-2027" style="--hero-image:url('images/banner-invierno-drop.jpg'); --mobile-hero-image:url('images/banner-mobile-invierno-2027.jpg')" aria-hidden="false">
+      <article class="hero-slide baked-banner winter-banner active" data-collection="invierno-2027" style="--hero-image:url('images/banner-invierno-2027.jpg'); --mobile-hero-image:url('images/banner-mobile-invierno-2027.jpg')" aria-hidden="false">
       </article>
       <article class="hero-slide accessories-banner" data-collection="accesorios" style="--hero-image:url('images/banner-accesorios-everyday.jpg'); --mobile-hero-image:url('images/banner-mobile-accesorios-2027.jpg')" aria-hidden="true">
       </article>
       <article class="hero-slide summer-banner" data-collection="verano-2027" style="--hero-image:url('images/banner-verano-2027.jpg'); --mobile-hero-image:url('images/banner-mobile-verano-2027.jpg')" aria-hidden="true">
         <div class="hero-content">
-          <p class="hero-eyebrow">Catálogo mayorista · BYE BYE</p>
+          <p class="hero-eyebrow">Catálogo Mayorista 2027</p>
           <h2 class="hero-title">Summer<br><em>collection</em><br>2027</h2>
         </div>
       </article>
@@ -116,7 +117,6 @@
   <!-- FILTERS -->
   <div class="filters-scroll-sentinel" id="filters-scroll-sentinel" aria-hidden="true"></div>
   <section class="filters-section" id="catalogo">
-    <div class="active-filter-chips" id="active-filter-chips" aria-label="Filtros activos" hidden></div>
     <div class="results-info">
       <span id="results-count"></span>
       <label class="catalog-sort" id="product-sort-control" hidden>
@@ -135,7 +135,7 @@
   <aside class="filters-inner filters-drawer" id="filters-panel" role="dialog" aria-modal="true" aria-labelledby="filters-title" aria-hidden="true">
       <div class="filters-drawer-header">
         <div>
-          <span class="filters-drawer-kicker">BYE BYE</span>
+          <span class="filters-drawer-kicker">Mayorista 2027</span>
           <h2 id="filters-title">Explorar catálogo</h2>
         </div>
         <button class="filters-drawer-close" id="filters-close" type="button" aria-label="Cerrar menú de filtros">×</button>
@@ -284,17 +284,17 @@
   <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <footer class="site-footer">
-    <p class="footer-brand">BYE BYE</p>
+    <p class="footer-brand">Mayorista 2027</p>
     <p>Catálogo mayorista · Pedidos y cotizaciones por WhatsApp</p>
     <a href="#catalogo">Volver al catálogo</a>
     <a href="admin/">Administrar catálogo</a>
   </footer>
 
-  <script src="catalog-config.js?v=20261007-box-options"></script>
-  <script src="catalog-api.js?v=20261112-site-settings"></script>
-  <script src="catalog-site-schema.js?v=20261119-etapa2"></script>
-  <script src="catalog-site.js?v=20261120-fotos"></script>
-<script src="script.js?v=20261119-second-photo"></script>
-  <script src="catalog-live.js?v=20261118-data-owned"></script>
+  <script src="catalog-config.js?v=20261124d"></script>
+  <script src="catalog-api.js?v=20261124d"></script>
+  <script src="catalog-site-schema.js?v=20261124d"></script>
+  <script src="catalog-site.js?v=20261124d"></script>
+<script src="script.js?v=20261124d"></script>
+  <script src="catalog-live.js?v=20261124d"></script>
 </body>
 </html>

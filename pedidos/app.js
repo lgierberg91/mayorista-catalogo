@@ -1482,7 +1482,7 @@ document.getElementById("btn-pdf").addEventListener("click", async () => {
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
-    doc.text("BYE BYE Indumentaria", 12, 15);
+    doc.text("Mayorista 2027", 12, 15);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.text(`Pedido N° ${numero || "-"}   |   Fecha: ${fecha || "-"}   |   Estado: ${estadoPedido}`, 12, 22);
