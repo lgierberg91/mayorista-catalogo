@@ -4849,7 +4849,14 @@ const productModal = document.getElementById('product-modal');
 const toast = document.getElementById('toast');
 
 // ── INIT ─────────────────────────────────────────
+// Completa el precio desde la lista de precios (precios.js) cuando el producto no lo trae.
+function applyListPrice(product) {
+  const listPrice = window.MAYORISTA_PRICES?.[product.id];
+  if (listPrice != null && (product.price == null || product.price === '')) product.price = listPrice;
+}
+
 function init() {
+  products.forEach(applyListPrice);
   loadPersistedState();
   buildCollectionFilters();
   updateGenderFilters();

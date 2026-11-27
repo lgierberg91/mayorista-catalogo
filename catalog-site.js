@@ -201,6 +201,7 @@
     const walk=node=>{if(Array.isArray(node))return node.map(walk);if(node&&typeof node==='object')return Object.fromEntries(Object.entries(node).map(([key,value])=>[key,/url|image/i.test(key)?value:walk(value)]));return typeof node==='string'?fix(node):node;};
     const result=walk(settings);
     if(result.header){result.header.logoUrl='';result.header.brandMode='text';result.header.brandName='Mayorista 2027';}
+    result.pricing={...(result.pricing||{}),visible:true,currency:'USD',decimals:2};
     return result;
   }
   function apply(raw,{preview=false}={}){const settings=rebrand(schema.migrate(raw));window.CatalogSiteSettings=settings;applyTokens(settings);applyMeta(settings);applyHeader(settings);applyAnnouncementBar(settings,{preview});applyHero(settings);applySections(settings);applySearchAndFilters(settings);applyFooter(settings);applyTexts(settings);applyCart(settings);applyFloatingWhatsapp(settings);applyCard(settings);applyPricing(settings);applyColorSwatches(settings);applyWelcome(settings,{preview});applyMaintenance(settings);applyElementStyles(settings,{preview});document.body.classList.toggle('site-compact-cards',settings.grid.compactCards===true);document.body.dataset.cardAlign=settings.card.textAlign||'left';document.body.dataset.cardHover=settings.grid.hover||'lift';document.body.dataset.cartSide=settings.cart.side||'right';document.body.dataset.preview=String(preview);markEditable();window.dispatchEvent(new CustomEvent('catalog-site-settings-applied',{detail:settings}));return settings;}
