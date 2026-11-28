@@ -320,7 +320,7 @@ body.add-dialog-open .back-to-top { display: none; }
   box-shadow: 0 24px 80px rgba(29,23,17,.3);
   animation: newsletter-rise .3s ease-out;
 }
-.newsletter-image { width: 100%; height: 100%; min-height: 380px; object-fit: cover; object-position: 30% center; }
+.newsletter-image { width: 100%; height: 100%; min-height: 380px; object-fit: cover; object-position: 52% center; }
 .newsletter-copy, .newsletter-done {
   display: flex; flex-direction: column; justify-content: center; gap: 14px;
   padding: clamp(28px, 5vw, 52px);
