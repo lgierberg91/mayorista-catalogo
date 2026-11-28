@@ -389,3 +389,18 @@ body.add-dialog-open .back-to-top { display: none; }
 .catalog-fab svg { width: 22px; height: 22px; }
 body:has(.cart-sidebar.open) .catalog-fab, body:has(.wa-chat.open) .catalog-fab,
 body.add-dialog-open .catalog-fab { display: none; }
+/* Muestra de color en el filtro de colores */
+.filters-drawer [data-extra-filter="color"]::before {
+  content: ""; display: inline-block; width: 18px; height: 18px; margin-right: 12px; vertical-align: -4px;
+  border-radius: 50%; border: 1px solid rgba(31,26,21,.18); background: var(--swatch, #ccc);
+}
+.filters-drawer [data-extra-filter="color"].active::before { box-shadow: 0 0 0 2px var(--white, #f4ede3), 0 0 0 3px var(--black, #1f1a15); }
+[data-extra-filter="color"][data-value="negro"] { --swatch: #1d1a17; }
+[data-extra-filter="color"][data-value="blanco"] { --swatch: linear-gradient(135deg, #ffffff 50%, #ece3d0 50%); }
+[data-extra-filter="color"][data-value="gris"] { --swatch: linear-gradient(135deg, #b9b7b2 50%, #6f6d69 50%); }
+[data-extra-filter="color"][data-value="beige"] { --swatch: linear-gradient(135deg, #e3d3b6 50%, #c9b08a 50%); }
+[data-extra-filter="color"][data-value="marron"] { --swatch: linear-gradient(135deg, #5a3a22 50%, #b8875a 50%); }
+[data-extra-filter="color"][data-value="azul"] { --swatch: linear-gradient(135deg, #1f2f4d 50%, #8fb3d9 50%); }
+[data-extra-filter="color"][data-value="verde"] { --swatch: #5f6a3c; }
+[data-extra-filter="color"][data-value="rojo"] { --swatch: linear-gradient(135deg, #e6a7b3 50%, #b3323b 50%); }
+[data-extra-filter="color"][data-value="otros"] { --swatch: conic-gradient(#b3323b, #d9a441, #5f6a3c, #1f2f4d, #b3323b); }
