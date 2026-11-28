@@ -133,3 +133,8 @@ window.MAYORISTA_PRICES = {
   10007: 32.50, // 226-423 Mack
   10009: 17.00, // 126-433 Elara
 };
+
+// Correcciones de género según las listas de precios (la base los trae mal cargados).
+window.MAYORISTA_GENDERS = {
+  218: 'MUJER', // 226-326 Ventura Reversible: "Campera reversible con piel mujer" (lista Dama)
+};
