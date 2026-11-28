@@ -375,3 +375,17 @@ body.add-dialog-open .back-to-top { display: none; }
 }
 .newsletter-files a::before { content: '↓'; margin-right: 10px; }
 .newsletter-dialog .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* Botón flotante de catálogos (hasta que deje el mail) */
+.catalog-fab {
+  position: fixed; right: 25px; bottom: 92px; z-index: 150;
+  display: grid; place-items: center;
+  width: 48px; height: 48px; border: 0; border-radius: 50%;
+  background: var(--black, #1f1a15); color: #fff;
+  box-shadow: 0 6px 18px rgba(31,26,21,.25);
+  cursor: pointer; transition: transform .2s ease;
+}
+.catalog-fab[hidden] { display: none; }
+.catalog-fab:hover { transform: scale(1.06); }
+.catalog-fab svg { width: 22px; height: 22px; }
+body:has(.cart-sidebar.open) .catalog-fab, body:has(.wa-chat.open) .catalog-fab,
+body.add-dialog-open .catalog-fab { display: none; }

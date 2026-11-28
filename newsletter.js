@@ -42,9 +42,25 @@
     if (result.ok === false) throw new Error(result.error || 'Error al guardar');
   }
 
-  function open() {
-    if (document.getElementById('newsletter-overlay') || document.getElementById('welcome-overlay')) return;
-    if (document.body.classList.contains('add-dialog-open')) { setTimeout(open, 4000); return; }
+  let fab = null;
+
+  // Botón flotante para abrir el pop-up en cualquier momento, hasta que deje el mail.
+  function mountFab() {
+    if (read(SUBSCRIBED_KEY) || fab) return;
+    fab = document.createElement('button');
+    fab.type = 'button';
+    fab.className = 'catalog-fab';
+    fab.setAttribute('aria-label', 'Descargar catálogos');
+    fab.title = 'Descargar catálogos';
+    fab.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>';
+    fab.onclick = () => open({ manual: true });
+    document.body.append(fab);
+  }
+
+  function open({ manual = false } = {}) {
+    if (document.getElementById('newsletter-overlay')) return;
+    if (!manual && document.getElementById('welcome-overlay')) return;
+    if (!manual && document.body.classList.contains('add-dialog-open')) { setTimeout(open, 4000); return; }
     const overlay = document.createElement('div');
     overlay.id = 'newsletter-overlay';
     overlay.className = 'newsletter-overlay';
@@ -81,6 +97,7 @@
     const close = ({ dismissed = true } = {}) => {
       if (dismissed) write(DISMISSED_KEY, String(Date.now()));
       overlay.remove();
+      if (fab) fab.hidden = !!read(SUBSCRIBED_KEY);
       document.removeEventListener('keydown', onKey, true);
       previousFocus?.focus?.();
     };
@@ -127,11 +144,14 @@
     });
 
     document.body.append(overlay);
+    if (fab) fab.hidden = true;
     setTimeout(() => input.focus({ preventScroll: true }), 50);
   }
 
-  if (!shouldShow()) return;
-  const start = () => setTimeout(open, DELAY_MS);
+  const start = () => {
+    mountFab();
+    if (shouldShow()) setTimeout(open, DELAY_MS);
+  };
   if (document.readyState === 'complete') start();
   else window.addEventListener('load', start, { once: true });
 })();
