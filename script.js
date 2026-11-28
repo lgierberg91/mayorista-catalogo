@@ -4564,12 +4564,16 @@ function productCollectionIds(product){return [...new Set([...(Array.isArray(pro
 function collectionCanBeSelected(id){
   const config=getCollectionsConfig();
   if(id==='todos')return config.showAll===true;
-  return collections.some(collection=>collection.id===id&&!collection.hidden);
+  return collections.some(collection=>collection.id===id&&!collection.hidden)&&collectionHasProducts(id);
+}
+// Colecciones sin productos visibles (p. ej. todos sin precio) no se ofrecen.
+function collectionHasProducts(id){
+  return products.some(product=>!product.isHidden&&!product.archived&&product.collections?.includes(id));
 }
 function getInitialCollectionId(){
   const config=getCollectionsConfig(),requested=config.initial||'verano-2027';
   if(collectionCanBeSelected(requested))return requested;
-  return collections.find(collection=>!collection.hidden)?.id||collections[0]?.id||'todos';
+  return collections.find(collection=>collectionCanBeSelected(collection.id))?.id||'todos';
 }
 
 const GENDER_LABELS = {
@@ -4614,7 +4618,7 @@ function buildCollectionFilters() {
   const collectionFilters = document.getElementById("collection-filters");
   if (!collectionFilters) return;
   const config=getCollectionsConfig();
-  const visibleCollections = collections.filter(collection => !collection.hidden);
+  const visibleCollections = collections.filter(collection => !collection.hidden && collectionHasProducts(collection.id));
   const options=[...(config.showAll===true?[{id:'todos',name:config.allLabel||'Todo el catálogo',type:'all'}]:[]),...visibleCollections];
   const markup=options.map(collection => `
       <button class="pill ${collection.id === activeCollection ? "active" : ""}" data-filter="collection" data-value="${collection.id}">
@@ -4898,8 +4902,9 @@ function updateGenderFilters() {
   if (!kidsFilter || !unisexFilter) return;
 
   const isHoodiesCollection = activeCollection === "hoodies-2027";
-  const showKids = activeCollection === "todos" || isWinterCollection() || isHoodiesCollection;
-  const showUnisex = activeCollection === "todos" || activeCollection === "accesorios" || isHoodiesCollection;
+  const hasGender = gender => getCollectionProducts().some(product => product.category === gender);
+  const showKids = (activeCollection === "todos" || isWinterCollection() || isHoodiesCollection) && hasGender('NINOS');
+  const showUnisex = (activeCollection === "todos" || activeCollection === "accesorios" || isHoodiesCollection) && hasGender('UNISEX');
   kidsFilter.style.display = showKids ? '' : 'none';
   unisexFilter.style.display = showUnisex ? '' : 'none';
 
@@ -4914,6 +4919,7 @@ function updateGenderFilters() {
 
 // ── CATEGORY FILTERS ────────────────────────────
 function buildCategoryFilters() {
+  categoryFilters.replaceChildren();
   const allBtn = document.createElement('button');
   allBtn.className = `pill ${activeCategory === 'all' ? 'active' : ''}`;
   allBtn.dataset.filter = 'category';
@@ -4956,9 +4962,28 @@ function updateCategoryFilters() {
   }
 }
 
+// Agrupa los nombres de color ("Negro/Oliva 2", "Marrón claro"…) en familias para el filtro.
+const COLOR_FAMILIES = [
+  ['negro', 'Negro', /negro/],
+  ['blanco', 'Blanco y crudo', /blanco|marfil|crudo|hueso/],
+  ['gris', 'Gris', /gris|melange|plomo|grafito/],
+  ['beige', 'Beige y arena', /beige|arena|avena|caqui|piedra|vison|nude|champagne/],
+  ['marron', 'Marrón y camel', /marron|chocolate|cafe|camel|ocre|tabaco|cognac|suela|bronce/],
+  ['azul', 'Azul', /azul|marino|celeste|denim/],
+  ['verde', 'Verde', /verde|oliva|militar|pistacho|lima/],
+  ['rojo', 'Rosa y rojo', /rosa|rojo|bordo|fucsia|malva/]
+];
+
+function colorFamilies(value) {
+  const name = normalizeColorName(value);
+  if (!name) return [];
+  const families = COLOR_FAMILIES.filter(([, , pattern]) => pattern.test(name)).map(([id]) => id);
+  return families.length ? families : ['otros'];
+}
+
 function productExtraFilterValues(product,type) {
   const groups=product.purchaseOptions?.length?product.purchaseOptions:[product];
-  if(type==='color')return [...new Set([...(product.colors||[]),...groups.flatMap(group=>group.colors||[])].map(value=>normalizeColorName(value)).filter(Boolean))];
+  if(type==='color')return [...new Set([...(product.colors||[]),...groups.flatMap(group=>group.colors||[])].flatMap(colorFamilies))];
   if(type==='size')return [...new Set([...(product.sizes||[]),...groups.flatMap(group=>group.sizes||[])].map(value=>String(value).trim()).filter(Boolean))];
   if(type==='packing')return [...new Set(groups.map(group=>group.packingType||(/POR COLOR|SOLID COLOR/i.test(group.sourcePacking||'')&&!/SURTID|ASSORT/i.test(group.sourcePacking||'')?'single-color':'mixed-colors')))];
   if(type==='availability')return[product.inStock===false?'unavailable':'available'];
@@ -4972,7 +4997,7 @@ function buildExtraFilters() {
     packing:{enabled:config.packing===true,group:'packing-filter-group',container:'packing-filters',label:texts['filters.packing']||'Formato de caja'},
     availability:{enabled:config.availability===true,group:'availability-filter-group',container:'availability-filters',label:texts['filters.availability']||'Disponibilidad'}
   };
-  for(const [type,definition]of Object.entries(definitions)){const group=document.getElementById(definition.group),container=document.getElementById(definition.container);if(!group||!container)continue;group.hidden=!definition.enabled;group.querySelector('.filter-label').textContent=definition.label;if(!definition.enabled){activeExtraFilters[type].clear();container.replaceChildren();continue;}let options=[];if(type==='availability')options=[['available',texts['filters.available']||'Disponible'],['unavailable',texts['filters.unavailable']||'Sin stock']];else if(type==='packing')options=[['mixed-colors',texts['filters.mixedPacking']||'Caja surtida'],['single-color',texts['filters.singlePacking']||'Caja por color']].filter(([value])=>baseProducts.some(product=>productExtraFilterValues(product,type).includes(value)));else{const labels=new Map();for(const product of baseProducts){const raw=type==='color'?[...(product.colors||[]),...(product.purchaseOptions||[]).flatMap(option=>option.colors||[])]:[...(product.sizes||[]),...(product.purchaseOptions||[]).flatMap(option=>option.sizes||[])];for(const value of raw){const token=type==='color'?normalizeColorName(value):String(value).trim();if(token&&!labels.has(token))labels.set(token,String(value).trim());}}options=[...labels].sort((a,b)=>a[1].localeCompare(b[1],'es',{numeric:true,sensitivity:'base'}));}const available=new Set(options.map(([value])=>value));for(const value of [...activeExtraFilters[type]])if(!available.has(value))activeExtraFilters[type].delete(value);container.replaceChildren(...options.map(([value,label])=>{const button=document.createElement('button');button.type='button';button.className=`pill${activeExtraFilters[type].has(value)?' active':''}`;button.dataset.extraFilter=type;button.dataset.value=value;button.textContent=label;return button;}));}
+  for(const [type,definition]of Object.entries(definitions)){const group=document.getElementById(definition.group),container=document.getElementById(definition.container);if(!group||!container)continue;group.hidden=!definition.enabled;group.querySelector('.filter-label').textContent=definition.label;if(!definition.enabled){activeExtraFilters[type].clear();container.replaceChildren();continue;}let options=[];if(type==='availability')options=[['available',texts['filters.available']||'Disponible'],['unavailable',texts['filters.unavailable']||'Sin stock']];else if(type==='packing')options=[['mixed-colors',texts['filters.mixedPacking']||'Caja surtida'],['single-color',texts['filters.singlePacking']||'Caja por color']].filter(([value])=>baseProducts.some(product=>productExtraFilterValues(product,type).includes(value)));else if(type==='color'){const present=new Set(baseProducts.flatMap(product=>productExtraFilterValues(product,'color')));options=[...COLOR_FAMILIES.map(([id,label])=>[id,label]),['otros','Otros']].filter(([value])=>present.has(value));}else{const labels=new Map();for(const product of baseProducts){const raw=type==='color'?[...(product.colors||[]),...(product.purchaseOptions||[]).flatMap(option=>option.colors||[])]:[...(product.sizes||[]),...(product.purchaseOptions||[]).flatMap(option=>option.sizes||[])];for(const value of raw){const token=type==='color'?normalizeColorName(value):String(value).trim();if(token&&!labels.has(token))labels.set(token,String(value).trim());}}options=[...labels].sort((a,b)=>a[1].localeCompare(b[1],'es',{numeric:true,sensitivity:'base'}));}const available=new Set(options.map(([value])=>value));for(const value of [...activeExtraFilters[type]])if(!available.has(value))activeExtraFilters[type].delete(value);container.replaceChildren(...options.map(([value,label])=>{const button=document.createElement('button');button.type='button';button.className=`pill${activeExtraFilters[type].has(value)?' active':''}`;button.dataset.extraFilter=type;button.dataset.value=value;button.textContent=label;return button;}));}
 }
 
 function productMatchesExtraFilters(product) {
