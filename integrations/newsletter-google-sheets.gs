@@ -6,7 +6,7 @@
  * y copiar la URL /exec en newsletterEndpoint de catalog-config.js.
  */
 const SHEET_NAME = 'Suscriptores';
-const HEADERS = ['Fecha', 'Email', 'Origen', 'Página'];
+const HEADERS = ['Fecha', 'Email', 'Catálogo', 'Origen', 'Página'];
 
 function doPost(e) {
   const lock = LockService.getScriptLock();
@@ -28,6 +28,7 @@ function doPost(e) {
     sheet.appendRow([
       new Date(),
       email,
+      String(data.catalog || '').slice(0, 20),
       String(data.source || '').slice(0, 40),
       String(data.page || '').slice(0, 200)
     ]);
