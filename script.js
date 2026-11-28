@@ -4974,8 +4974,9 @@ const COLOR_FAMILIES = [
   ['rojo', 'Rosa y rojo', /rosa|rojo|bordo|fucsia|malva/]
 ];
 
+// En combinados ("Negro/Oliva", "Negro con oliva") el segundo color suele ser el forro: cuenta solo el primero.
 function colorFamilies(value) {
-  const name = normalizeColorName(value);
+  const name = normalizeColorName(value).split(/\s*\/\s*|\s+con\s+|\s+y\s+/)[0];
   if (!name) return [];
   const families = COLOR_FAMILIES.filter(([, , pattern]) => pattern.test(name)).map(([id]) => id);
   return families.length ? families : ['otros'];
