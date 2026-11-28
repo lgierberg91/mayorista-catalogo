@@ -402,5 +402,6 @@ body.add-dialog-open .catalog-fab { display: none; }
 [data-extra-filter="color"][data-value="marron"] { --swatch: linear-gradient(135deg, #5a3a22 50%, #b8875a 50%); }
 [data-extra-filter="color"][data-value="azul"] { --swatch: linear-gradient(135deg, #1f2f4d 50%, #8fb3d9 50%); }
 [data-extra-filter="color"][data-value="verde"] { --swatch: #5f6a3c; }
-[data-extra-filter="color"][data-value="rojo"] { --swatch: linear-gradient(135deg, #e6a7b3 50%, #b3323b 50%); }
+[data-extra-filter="color"][data-value="rosa"] { --swatch: #e6a7b3; }
+[data-extra-filter="color"][data-value="rojo"] { --swatch: linear-gradient(135deg, #c0313a 50%, #6e1f2b 50%); }
 [data-extra-filter="color"][data-value="otros"] { --swatch: conic-gradient(#b3323b, #d9a441, #5f6a3c, #1f2f4d, #b3323b); }

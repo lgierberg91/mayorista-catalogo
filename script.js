@@ -4973,7 +4973,8 @@ const COLOR_FAMILIES = [
   ['marron', 'Marrón y camel', /marron|chocolate|cafe|camel|ocre|tabaco|cognac|suela|bronce/],
   ['azul', 'Azul', /azul|marino|celeste|denim/],
   ['verde', 'Verde', /verde|oliva|militar|pistacho|lima/],
-  ['rojo', 'Rosa y rojo', /rosa|rojo|bordo|fucsia|malva/]
+  ['rosa', 'Rosa', /rosa|fucsia|malva/],
+  ['rojo', 'Rojos', /rojo|bordo|borravino|vino|granate/]
 ];
 
 // En combinados ("Negro/Oliva", "Negro con oliva") el segundo color suele ser el forro: cuenta solo el primero.
